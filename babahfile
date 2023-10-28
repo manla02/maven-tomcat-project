@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    tools {
+        // Install the Maven version configured as "Maven" and add it to the path.
+        maven "Maven"
+    }
+
+    stages {
+       // stage('Code Checkout') {
+           // steps {
+                // Get some code from a GitHub repository
+                //git 'https://github.com/babah1139/maven-project-2.git'
+
+                // Run Maven on a Unix agent.
+                // sh "mvn -Dmaven.test.failure.ignore=true clean package"
+
+                // To run Maven on a Windows agent, use
+                // bat "mvn -Dmaven.test.failure.ignore=true clean package"
+           // }
+       // }
+        
+       // stage('Code Scan'){
+           // steps {
+            //   withSonarQubeEnv('sonarqube') {
+              // sh "mvn clean verify sonar:sonar -Dsonar.projectKey=maven"
+            //   }
+                
+           // }
+      //  }
+        
+        stage('Build'){
+          steps {
+              sh "mvn package"
+          }
+        }
+
+        stage('sonarqube code scan') {
+            steps {
+              sh 'mvn clean verify sonar:sonar \
+                -Dsonar.projectKey=primus \
+                -Dsonar.host.url=http://3.209.80.94:9000 \
+                -Dsonar.login=sqp_d8782cfb36093b4828538a5c3f57ddae31896cae'
+            }
+        }
+        
+        stage ('Deploy to Tomee') {
+           steps {
+            script {
+          deploy adapters: [tomcat9(credentialsId: 'tomcat', path: '', url: 'http://3.209.80.94:8888/')], contextPath: '/primus-app', onFailure: false, war: 'webapp/target/*.war'
+            }
+           }
+        }
+    }
+}

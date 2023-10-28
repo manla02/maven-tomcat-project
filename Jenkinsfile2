@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    tools {
+        // Install the Maven version configured as "M3" and add it to the path.
+        maven "Maven"
+    }
+    
+    triggers {
+      pollSCM '* * * * *'
+    } 
+
+    stages {
+        stage('Code Scan') {
+            when {
+               branch 'workflow'
+            }
+            steps {
+                // Get some code from a GitHub repository
+               // git 'https://github.com/Raymond-Tanwie/maven-project-2.git'
+                sh "mvn clean verify sonar:sonar \
+                  -Dsonar.projectKey=primus \
+                  -Dsonar.host.url=http://3.80.71.36:9000 \
+                  -Dsonar.login=sqp_bb3401f814d5d75c6f2fc495d775edcd528e9264 "
+
+                // Run Maven on a Unix agent.
+               // sh "mvn -Dmaven.test.failure.ignore=true clean package"
+
+                // To run Maven on a Windows agent, use
+                // bat "mvn -Dmaven.test.failure.ignore=true clean package"
+            }
+
+        }
+        stage('Build'){
+          steps {
+              sh "mvn -Dmaven.test.failure.ignore=true package"
+          }
+        }
+        stage ('Deploy to Tomcat') {
+          when {
+             branch 'workflow'
+            }
+           steps {
+            script {
+          deploy adapters: [tomcat9(credentialsId: 'tomcat', path: '', url: 'http://54.147.30.209:8080/')], contextPath: '/primus-app', onFailure: false, war: 'webapp/target/*.war' 
+         }
+       }
+     }
+    }
+    
+}
